@@ -22,7 +22,7 @@ app.use((req, _res, next) => {
 app.use(cors({
   origin: "http://localhost:5173",
   methods: ["POST", "GET", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Connect-Protocol-Version", "Connect-Timeout-Ms"],
+  allowedHeaders: ["Content-Type", "Connect-Protocol-Version", "Connect-Timeout-Ms", "x-user-id"],
   exposedHeaders: ["Content-Type", "Connect-Content-Encoding", "Connect-Accept-Encoding"],
   credentials: true
 }));
