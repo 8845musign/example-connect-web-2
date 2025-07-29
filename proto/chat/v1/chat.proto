@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package chat.v1;
+
+// チャットサービス定義
+service ChatService {
+  // 双方向ストリーミングRPC
+  rpc Chat(stream ChatMessage) returns (stream ChatEvent);
+}
+
+// クライアントからサーバーへのメッセージ
+message ChatMessage {
+  oneof message {
+    JoinRequest join = 1;
+    SendMessageRequest send_message = 2;
+    LeaveRequest leave = 3;
+  }
+}
+
+// 入室リクエスト
+message JoinRequest {
+  string username = 1;
+}
+
+// メッセージ送信リクエスト
+message SendMessageRequest {
+  string content = 1;
+}
+
+// 退室リクエスト
+message LeaveRequest {}
+
+// サーバーからクライアントへのイベント
+message ChatEvent {
+  oneof event {
+    UserJoinedEvent user_joined = 1;
+    UserLeftEvent user_left = 2;
+    MessageReceivedEvent message_received = 3;
+    ErrorEvent error = 4;
+    ConnectionAcceptedEvent connection_accepted = 5;
+  }
+}
+
+// 接続承認イベント
+message ConnectionAcceptedEvent {
+  string user_id = 1;
+  repeated User active_users = 2;
+}
+
+// ユーザー入室イベント
+message UserJoinedEvent {
+  User user = 1;
+}
+
+// ユーザー退室イベント
+message UserLeftEvent {
+  string user_id = 1;
+}
+
+// メッセージ受信イベント
+message MessageReceivedEvent {
+  string user_id = 1;
+  string username = 2;
+  string content = 3;
+  int64 timestamp = 4;
+}
+
+// エラーイベント
+message ErrorEvent {
+  string message = 1;
+  ErrorCode code = 2;
+}
+
+// エラーコード
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_USERNAME_TAKEN = 1;
+  ERROR_CODE_INVALID_MESSAGE = 2;
+}
+
+// ユーザー情報
+message User {
+  string id = 1;
+  string username = 2;
+}

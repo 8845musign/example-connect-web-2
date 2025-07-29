@@ -1,0 +1,16 @@
+{
+  "name": "connect-web-chat",
+  "version": "1.0.0",
+  "description": "Connect RPC v2 Chat Application",
+  "private": true,
+  "scripts": {
+    "dev": "./scripts/dev.sh",
+    "generate": "./scripts/generate.sh",
+    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.55.1",
+    "@bufbuild/protoc-gen-es": "^2.2.0",
+    "concurrently": "^8.2.0"
+  }
+}
