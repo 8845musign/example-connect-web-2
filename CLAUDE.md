@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a real-time chat application using Connect RPC v2's bidirectional streaming, built with:
-- **Backend**: Node.js, TypeScript, Connect RPC v2
+This is a real-time chat application using Connect RPC v2 with server streaming and unary RPCs, built with:
+- **Backend**: Node.js, TypeScript, Express, Connect RPC v2 (connect-express)
 - **Frontend**: React 18, React Router v7 (Framework Mode), TypeScript, Vite
 - **Protocol**: Protocol Buffers v3, Buf for code generation
 
@@ -40,22 +40,27 @@ Currently no test framework is configured. When implementing tests, check packag
 
 ## Architecture
 
-### Connect RPC Bidirectional Streaming
-The app uses a single bidirectional streaming RPC endpoint `ChatService.Chat()` for all real-time communication:
-- Client sends: `ChatMessage` (join/sendMessage/leave)
-- Server sends: `ChatEvent` (connectionAccepted/userJoined/userLeft/messageReceived/error)
+### Connect RPC Pattern (Server Streaming + Unary RPCs)
+Due to browser fetch API limitations with client streaming, the app uses:
+- **Join** (Server Streaming): Real-time event delivery from server to client
+- **SendMessage** (Unary RPC): Send chat messages
+- **Leave** (Unary RPC): Disconnect from chat
+
+### Why This Architecture?
+The browser's fetch API doesn't support client-side streaming, which prevents bidirectional streaming.
+This pattern works around that limitation while maintaining real-time functionality.
 
 ### Key Components
 
 **Backend** (`backend/src/`):
-- `server.ts`: HTTP server with Connect RPC adapter, CORS configuration
-- `services/chat.ts`: Chat service implementation with session management, broadcasting logic
+- `server.ts`: Express HTTP server with Connect RPC middleware, CORS configuration
+- `services/chat.ts`: Chat service implementation with three RPC methods
 - `gen/`: Generated Protocol Buffer code (do not edit)
 
 **Frontend** (`frontend/src/`):
 - `routes/`: React Router v7 pages (index.tsx = login, chat/room.tsx = chat room)
-- `services/chat.service.ts`: Connect RPC client singleton
-- `hooks/useChat.ts`: Main hook managing WebSocket connection and state
+- `services/chat.service.ts`: Connect RPC client with server streaming support
+- `hooks/useChat.ts`: Main hook managing streaming connection and state
 - `components/`: UI components (MessageList, UserList, MessageInput)
 - `gen/`: Generated Protocol Buffer code (do not edit)
 
@@ -63,6 +68,7 @@ The app uses a single bidirectional streaming RPC endpoint `ChatService.Chat()` 
 - No global state management library (Redux/Zustand)
 - Session storage for username persistence
 - Local React state in `useChat` hook for messages/users
+- User ID stored in client and sent via x-user-id header for authentication
 
 ### Protocol Buffer Modifications
 When modifying `proto/chat/v1/chat.proto`:
@@ -77,26 +83,42 @@ When modifying `proto/chat/v1/chat.proto`:
 
 ### Error Handling
 - Connect RPC errors use `ConnectError` with proper error codes
-- Frontend displays errors via toast notifications
+- Frontend displays errors via console (toast notifications planned)
 - Automatic navigation to login on connection failure
 
 ### Session Management
 - Each connection gets unique session ID and user ID (UUIDs)
 - Username uniqueness enforced at join time
+- User ID sent via x-user-id header for SendMessage/Leave authentication
 - Proper cleanup on disconnect to prevent memory leaks
 
 ### Streaming Pattern
-Backend uses `ReadableStream` for event distribution:
+Backend uses server streaming for Join method:
 ```typescript
-const responseStream = new ReadableStream<ChatEvent>({
-  start(controller) { /* setup */ },
-  cancel() { /* cleanup */ }
-});
+async *join(req: JoinRequest, context: HandlerContext) {
+  // Setup stream
+  const stream = new ReadableStream<ChatEvent>({
+    start(controller) { /* setup */ },
+    cancel() { /* cleanup */ }
+  });
+  
+  // Yield events
+  for await (const event of streamReader) {
+    yield event;
+  }
+}
 ```
 
 Frontend consumes events with async iteration:
 ```typescript
+const stream = chatClient.join(username);
 for await (const event of stream) {
   handleChatEvent(event);
 }
 ```
+
+### CORS Configuration
+Express CORS middleware configured to allow:
+- Origin: http://localhost:5173
+- Custom headers: x-user-id, Connect-Protocol-Version, Connect-Timeout-Ms
+- Credentials: true
