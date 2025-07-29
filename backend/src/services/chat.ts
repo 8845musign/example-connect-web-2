@@ -105,7 +105,7 @@ export const chatServiceImpl = {
     });
     
     
-    (async () => {
+    void (async () => {
       try {
         for await (const message of stream) {
           switch (message.message.case) {
