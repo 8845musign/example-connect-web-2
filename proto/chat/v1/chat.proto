@@ -4,17 +4,14 @@ package chat.v1;
 
 // チャットサービス定義
 service ChatService {
-  // 双方向ストリーミングRPC
-  rpc Chat(stream ChatMessage) returns (stream ChatEvent);
-}
-
-// クライアントからサーバーへのメッセージ
-message ChatMessage {
-  oneof message {
-    JoinRequest join = 1;
-    SendMessageRequest send_message = 2;
-    LeaveRequest leave = 3;
-  }
+  // 入室（サーバーストリーミングを開始）
+  rpc Join(JoinRequest) returns (stream ChatEvent);
+  
+  // メッセージ送信（Unary RPC）
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  
+  // 退室（Unary RPC）
+  rpc Leave(LeaveRequest) returns (LeaveResponse);
 }
 
 // 入室リクエスト
@@ -27,8 +24,18 @@ message SendMessageRequest {
   string content = 1;
 }
 
+// メッセージ送信レスポンス
+message SendMessageResponse {
+  bool success = 1;
+}
+
 // 退室リクエスト
 message LeaveRequest {}
+
+// 退室レスポンス
+message LeaveResponse {
+  bool success = 1;
+}
 
 // サーバーからクライアントへのイベント
 message ChatEvent {

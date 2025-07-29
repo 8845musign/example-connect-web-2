@@ -30,14 +30,17 @@ export function useChat(username: string) {
     
     (async () => {
       try {
-        const stream = chatClient.connect(username);
+        console.log("Attempting to join with username:", username);
+        const stream = chatClient.join(username);
         
         for await (const event of stream) {
           if (cancelled) break;
+          console.log("Received event:", event);
           handleChatEvent(event);
         }
       } catch (err) {
         if (!cancelled) {
+          console.error("Connection error:", err);
           setError(err instanceof Error ? err.message : "Connection failed");
           navigate("/");
         }
@@ -46,7 +49,7 @@ export function useChat(username: string) {
     
     return () => {
       cancelled = true;
-      chatClient.disconnect();
+      chatClient.leave();
     };
   }, [username, navigate]);
   
