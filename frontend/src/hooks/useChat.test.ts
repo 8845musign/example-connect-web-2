@@ -2,7 +2,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { create } from '@bufbuild/protobuf';
 import { UserSchema, SendMessageResponseSchema, LeaveResponseSchema } from '../gen/proto/chat/v1/chat_pb';
-import { createMockChatClient, type MockChatClient } from '../test/mocks/chat.mock';
+import { type MockChatClient } from '../test/mocks/chat.mock';
 
 // Mock React Router first
 const mockNavigate = vi.fn();
