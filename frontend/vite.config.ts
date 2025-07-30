@@ -5,8 +5,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [
-    !process.env.VITEST && reactRouter(),
-    react()
+    !process.env.VITEST ? reactRouter() : react()
   ].filter(Boolean),
   server: {
     port: 5173,
