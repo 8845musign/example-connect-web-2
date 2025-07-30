@@ -41,7 +41,23 @@ npm run lint:fix  # ESLint with auto-fix
 All scripts are defined in package.json. Shell scripts have been removed in favor of cross-platform npm scripts.
 
 ### Testing
-Currently no test framework is configured. When implementing tests, check package.json for test scripts.
+
+**Frontend Testing with Vitest**:
+- Framework: Vitest with React Testing Library
+- Test files: Located in same directory as source (e.g., `useChat.test.ts` next to `useChat.ts`)
+- In-source testing: Enabled for utilities (see `src/utils/validation.ts`)
+- Mock utilities: Available in `src/test/mocks/` for Connect RPC streaming
+- Run tests: `npm run test` (watch mode) or `npm run test:run` (single run)
+
+```bash
+# Frontend testing commands (from frontend/ directory)
+npm run test          # Watch mode
+npm run test:ui       # UI mode
+npm run test:run      # Single run
+npm run test:coverage # Coverage report
+```
+
+**Backend Testing**: Not yet configured
 
 ## Architecture
 
@@ -195,3 +211,40 @@ connect-web-2/
 - Import extensions use `.js` even for TypeScript files
 - Generated imports follow ES module conventions
 - Both backend and frontend share same proto definitions
+
+## Testing Guidelines
+
+### Frontend Testing Setup
+The frontend uses Vitest with the following configuration:
+- **Test Location**: Tests are co-located with source files (e.g., `component.test.ts`)
+- **In-Source Testing**: Enabled via `import.meta.vitest` for utility functions
+- **Mocking**: Custom mock utilities for Connect RPC streaming in `src/test/mocks/`
+- **Test Utils**: Router testing utilities in `src/test/utils/`
+
+### Writing Tests for Connect RPC
+```typescript
+// Example: Testing a hook that uses Connect RPC streaming
+import { MockChatClient } from '../test/mocks/chat.mock';
+const mockClient = new MockChatClient();
+
+// Mock streaming responses
+mockClient.join.mockReturnValue(
+  mockClient.createMockStream([
+    mockClient.createConnectionAcceptedEvent(userId, users),
+    mockClient.createMessageReceivedEvent(userId, username, content)
+  ])
+);
+```
+
+### In-Source Testing Example
+```typescript
+// src/utils/someUtil.ts
+export const myFunction = (input: string) => { /* ... */ };
+
+if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest;
+  test('myFunction works correctly', () => {
+    expect(myFunction('test')).toBe('expected');
+  });
+}
+```
