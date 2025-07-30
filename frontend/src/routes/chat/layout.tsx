@@ -1,27 +1,28 @@
 import { Outlet, useNavigate } from "react-router";
 import type { Route } from "./+types/layout";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export async function clientLoader() {
   const username = sessionStorage.getItem("username");
-  
+
   if (!username) {
     throw new Response(null, {
       status: 302,
       headers: { Location: "/" },
     });
   }
-  
+
   return { username };
 }
 
 export default function ChatLayout({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate();
-  
+
   const handleLogout = () => {
     sessionStorage.removeItem("username");
     navigate("/");
   };
-  
+
   return (
     <div className="chat-layout">
       <header className="chat-header">

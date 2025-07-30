@@ -19,20 +19,69 @@ export function useChat(username: string) {
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  
+
+  const handleChatEvent = useCallback(
+    (event: ChatEvent) => {
+      switch (event.event.case) {
+        case "connectionAccepted": {
+          const { userId, activeUsers } = event.event.value;
+          setCurrentUserId(userId);
+          setUsers(activeUsers);
+          setIsConnected(true);
+          break;
+        }
+
+        case "userJoined": {
+          const { user } = event.event.value;
+          if (user) {
+            setUsers((prev) => [...prev, user]);
+          }
+          break;
+        }
+
+        case "userLeft": {
+          const { userId } = event.event.value;
+          setUsers((prev) => prev.filter((u) => u.id !== userId));
+          break;
+        }
+
+        case "messageReceived": {
+          const msg = event.event.value;
+          const displayMsg: DisplayMessage = {
+            id: crypto.randomUUID(),
+            userId: msg.userId,
+            username: msg.username,
+            content: msg.content,
+            timestamp: new Date(Number(msg.timestamp)),
+            isOwn: msg.userId === currentUserId,
+          };
+          setMessages((prev) => [...prev, displayMsg]);
+          break;
+        }
+
+        case "error": {
+          const { message } = event.event.value;
+          setError(message);
+          break;
+        }
+      }
+    },
+    [currentUserId]
+  );
+
   useEffect(() => {
     if (!username) {
       navigate("/");
       return;
     }
-    
+
     let cancelled = false;
-    
+
     (async () => {
       try {
         console.log("Attempting to join with username:", username);
         const stream = chatClient.join(username);
-        
+
         for await (const event of stream) {
           if (cancelled) break;
           console.log("Received event:", event);
@@ -46,67 +95,21 @@ export function useChat(username: string) {
         }
       }
     })();
-    
+
     return () => {
       cancelled = true;
       chatClient.leave();
     };
-  }, [username, navigate]);
-  
-  const handleChatEvent = useCallback((event: ChatEvent) => {
-    switch (event.event.case) {
-      case "connectionAccepted": {
-        const { userId, activeUsers } = event.event.value;
-        setCurrentUserId(userId);
-        setUsers(activeUsers);
-        setIsConnected(true);
-        break;
-      }
-      
-      case "userJoined": {
-        const { user } = event.event.value;
-        if (user) {
-          setUsers(prev => [...prev, user]);
-        }
-        break;
-      }
-      
-      case "userLeft": {
-        const { userId } = event.event.value;
-        setUsers(prev => prev.filter(u => u.id !== userId));
-        break;
-      }
-      
-      case "messageReceived": {
-        const msg = event.event.value;
-        const displayMsg: DisplayMessage = {
-          id: crypto.randomUUID(),
-          userId: msg.userId,
-          username: msg.username,
-          content: msg.content,
-          timestamp: new Date(Number(msg.timestamp)),
-          isOwn: msg.userId === currentUserId
-        };
-        setMessages(prev => [...prev, displayMsg]);
-        break;
-      }
-      
-      case "error": {
-        const { message } = event.event.value;
-        setError(message);
-        break;
-      }
-    }
-  }, [currentUserId]);
-  
+  }, [username, navigate, handleChatEvent]);
+
   const sendMessage = useCallback(async (content: string) => {
     try {
       await chatClient.sendMessage(content);
-    } catch (err) {
+    } catch (_) {
       setError("Failed to send message");
     }
   }, []);
-  
+
   return {
     isConnected,
     messages,

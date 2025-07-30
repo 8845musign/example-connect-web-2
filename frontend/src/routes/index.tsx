@@ -1,16 +1,17 @@
 import { Form, useNavigation, useActionData } from "react-router";
 import type { Route } from "./+types/index";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export async function clientAction({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const username = formData.get("username") as string;
-  
+
   if (!username?.trim()) {
     return { error: "ユーザー名を入力してください" };
   }
-  
+
   sessionStorage.setItem("username", username);
-  
+
   throw new Response(null, {
     status: 302,
     headers: { Location: "/chat" },
@@ -21,7 +22,7 @@ export default function LoginRoute() {
   const actionData = useActionData<typeof clientAction>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
-  
+
   return (
     <div className="login-container">
       <div className="login-box">
