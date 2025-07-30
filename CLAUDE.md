@@ -23,13 +23,18 @@ npm run generate
 npm run dev
 
 # Backend-specific commands (from backend/ directory)
+npm run dev       # Start development server with nodemon + tsx
+npm run build     # TypeScript compilation
+npm run start     # Production server (requires build)
 npm run lint      # ESLint for TypeScript files
 npm run format    # Prettier formatting
-npm run build     # TypeScript compilation
 
 # Frontend-specific commands (from frontend/ directory)  
+npm run dev       # Start Vite dev server
+npm run build     # TypeScript + Vite production build
+npm run preview   # Preview production build
 npm run lint      # ESLint
-npm run build     # TypeScript + Vite build
+npm run lint:fix  # ESLint with auto-fix
 ```
 
 ### Note on Scripts
@@ -122,3 +127,71 @@ Express CORS middleware configured to allow:
 - Origin: http://localhost:5173
 - Custom headers: x-user-id, Connect-Protocol-Version, Connect-Timeout-Ms
 - Credentials: true
+
+## Code Quality Standards
+
+### ESLint Configuration
+- **Backend**: TypeScript strict rules with type checking enabled
+  - No unused variables (except underscore-prefixed)
+  - No explicit any
+  - Ignores generated code in `src/gen`
+- **Frontend**: Modern ESLint flat config with TypeScript + React rules
+  - React hooks linting
+  - React refresh linting for Vite HMR
+  - Ignores `dist`, `.react-router`, and `src/gen`
+
+### Important Dependencies
+- **Connect RPC v2**: `@connectrpc/connect` (v2.0.0+)
+- **Protocol Buffers**: `@bufbuild/protobuf` (v2.2.0+)
+- **Buf CLI**: `@bufbuild/buf` for code generation
+- **TypeScript**: v5.3+ (backend), v5.8+ (frontend)
+
+## Directory Structure Details
+
+```
+connect-web-2/
+├── buf.gen.yaml        # Buf code generation config
+│                       # Generates to both backend/src/gen and frontend/src/gen
+├── proto/
+│   └── chat/v1/
+│       └── chat.proto  # Service definitions - modify here first
+├── backend/
+│   ├── src/
+│   │   ├── server.ts   # Express server setup with CORS + logging
+│   │   ├── services/
+│   │   │   └── chat.ts # ChatManager class + service implementation
+│   │   └── gen/        # Generated code (DO NOT EDIT)
+│   └── tsconfig.json   # ES2022, module: NodeNext
+└── frontend/
+    ├── src/
+    │   ├── routes/     # React Router v7 file-based routing
+    │   │   ├── _index.tsx    # Login page
+    │   │   └── chat/
+    │   │       └── room.tsx  # Chat room page
+    │   ├── services/
+    │   │   └── chat.service.ts  # ChatClient class with streaming
+    │   ├── hooks/
+    │   │   └── useChat.ts       # Main state management hook
+    │   └── gen/                 # Generated code (DO NOT EDIT)
+    └── vite.config.ts           # Vite + React Router plugin
+```
+
+## Common Development Tasks
+
+### Adding a New RPC Method
+1. Update `proto/chat/v1/chat.proto`
+2. Run `npm run generate`
+3. Implement in `backend/src/services/chat.ts`
+4. Update `frontend/src/services/chat.service.ts`
+5. Update `frontend/src/hooks/useChat.ts` if needed
+
+### Debugging Connection Issues
+- Check browser console for detailed logs
+- Backend logs all requests with timestamps
+- Verify CORS headers match in `backend/src/server.ts`
+- Check x-user-id header is sent for authenticated RPCs
+
+### Type Generation Notes
+- Import extensions use `.js` even for TypeScript files
+- Generated imports follow ES module conventions
+- Both backend and frontend share same proto definitions
